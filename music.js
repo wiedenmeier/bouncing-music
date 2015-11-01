@@ -35,10 +35,12 @@ var Simulation = {
         // Set dimensions
         this.width = Elements.canvas.width;
         this.height = Elements.canvas.height;
+        this.canvas_offset_left = Elements.canvas.offsetLeft;
+        this.canvas_offset_top = Elements.canvas.offsetTop;
 
         // Set appearance features
         Elements.context.lineWidth = 5;
-        this.radius = 150;
+        this.radius = 50;
 
         // Clear screen and get ready
         this.stop();
@@ -48,9 +50,9 @@ var Simulation = {
         var movement = new MovementVector(
                 Math.random() * this.width,
                 Math.random() * this.height,
-                Math.random() * 4 - 2,
-                Math.random() * 4 - 2);
-        this.spheres.push(new Sphere(movement, 50));
+                0, 0);
+        movement.random_velocity();
+        this.spheres.push(new Sphere(movement, this.radius));
 
         this.playing = true;
         this.animation = window.requestAnimationFrame(Simulation.main_loop);
@@ -67,12 +69,16 @@ var Simulation = {
         Simulation.clear();
 
         for (i in Simulation.spheres) {
-            Simulation.spheres[i].update_position();
-            Simulation.spheres[i].draw();
+            var sph = Simulation.spheres[i];
+            for (var n = parseInt(i) + 1; n < Simulation.spheres.length; n++) {
+                sph.check_collision_with_sphere(Simulation.spheres[n]);
+            }
+            sph.check_collision_with_wall();
+            sph.update_position();
+            sph.draw();
         }
 
-        Simulation.animation =
-            window.requestAnimationFrame(Simulation.main_loop);
+        Simulation.animation = window.requestAnimationFrame(Simulation.main_loop);
     },
 
     clear : function() {
@@ -80,13 +86,83 @@ var Simulation = {
     },
 
     place_sphere : function(e) {
+        var movement = new MovementVector(
+                e.clientX - Simulation.canvas_offset_left,
+                e.clientY - Simulation.canvas_offset_top,
+                0, 0);
+        movement.random_velocity();
+        Simulation.spheres.push(new Sphere(movement, Simulation.radius));
     }
 };
 
 function Sphere(movementvector, radius) {
     this.mv = movementvector;
     this.r = radius;
-    this.color = "rgba(50, 100, 200)";
+    this.color = "rgba(10, 10, 200, 1)";
+
+    this.check_collision_with_wall = function() {
+        if (this.mv.dx() > this.distance_to_right_wall() ||
+            this.mv.dx() < this.distance_to_left_wall()) {
+            this.mv.x -= this.mv.dx();
+            this.mv.angle = Math.PI - this.mv.angle;
+        }
+
+        if (this.mv.dy() > this.distance_to_bottom_wall() ||
+            this.mv.dy() < this.distance_to_top_wall()) {
+            this.mv.y -= this.mv.dy();
+            this.mv.angle = Math.PI * 2 - this.mv.angle;
+        }
+
+        /*if (this.distance_to_top_wall() > -1) {*/
+        /*this.mv.y = this.r + 2;*/
+        /*}*/
+
+        /*if (this.distance_to_bottom_wall() < 1) {*/
+        /*this.mv.y = Simulation.height - (this.r + 2);*/
+        /*}*/
+
+        /*if (this.distance_to_left_wall() > -1) {*/
+        /*this.mv.x = this.r + 2;*/
+        /*}*/
+
+        /*if (this.distance_to_right_wall() < 1) {*/
+        /*this.mv.x = Simulation.width - (this.r + 2);*/
+        /*}*/
+    };
+
+    this.check_collision_with_sphere = function(other) {
+        var npos = this.mv.next_position();
+        var nother = other.mv.next_position();
+
+        if (npos.distance(nother) > this.r + other.r)
+            return;
+
+        var intersection_plane_angle = Math.PI / 2 +
+            Math.atan((nother.y - npos.y) / (nother.x - npos.x));
+        this.mv.next_angle = 2 * intersection_plane_angle - this.mv.angle;
+        /*this.mv.mag = this.mv.dot(other.mv);*/
+
+        var intersection_plane_angle = Math.PI / 2 +
+            Math.atan((npos.y - nother.y) / (npos.x - nother.x));
+        other.mv.next_angle = 2 * intersection_plane_angle - other.mv.angle;
+        /*other.mv.mag = other.mv.dot(this.mv);*/
+    };
+
+    this.distance_to_right_wall = function() {
+        return Simulation.width - (this.mv.x + this.r);
+    };
+
+    this.distance_to_left_wall = function() {
+        return 0 - (this.mv.x - this.r);
+    };
+
+    this.distance_to_bottom_wall = function() {
+        return Simulation.height - (this.mv.y + this.r);
+    };
+
+    this.distance_to_top_wall = function() {
+        return 0 - (this.mv.y - this.r);
+    };
 
     this.update_position = function() {
         this.mv.update_position();
@@ -94,21 +170,54 @@ function Sphere(movementvector, radius) {
 
     this.draw = function() {
         Elements.context.beginPath();
-        Elements.context.arc(this.mv.x, this.mv.y, this.r,
-                0, 2 * Math.PI, true);
+        Elements.context.arc(this.mv.x, this.mv.y, this.r, 0, 2 * Math.PI, true);
+        Elements.context.strokeStyle = this.color;
         Elements.context.stroke();
         Elements.context.closePath();
-    }
+    };
 }
 
-function MovementVector(x, y, dx, dy) {
+function MovementVector(x, y, angle, magnitude) {
     this.x = x;
     this.y = y;
-    this.dx = dx;
-    this.dy = dy;
+    this.angle = angle;
+    this.mag = magnitude;
+    this.next_angle = null;
+
+    this.distance = function(other) {
+        return Math.sqrt(Math.pow(other.x - this.x, 2) +
+                Math.pow(other.y - this.y, 2));
+    };
+
+    this.dx = function() {
+        return Math.cos(this.angle) * this.mag;
+    };
+
+    this.dy = function() {
+        return Math.sin(this.angle) * this.mag;
+    };
+
+    this.dot = function(other) {
+        return this.mag * other.mag * Math.cos(other.angle - this.angle);
+    };
 
     this.update_position = function() {
-        this.x += dx;
-        this.y += dy;
+        if (this.next_angle != null) {
+            this.angle = this.next_angle;
+            this.next_angle = null;
+        }
+        this.x += Math.round(this.dx());
+        this.y += Math.round(this.dy());
+    };
+
+    this.next_position = function() {
+        var mv = new MovementVector(this.x, this.y, this.angle, this.mag);
+        mv.update_position();
+        return mv;
+    };
+
+    this.random_velocity = function() {
+        this.mag = Math.random() * 2 + 2;
+        this.angle = Math.random() * 2 * Math.PI;
     };
 }
