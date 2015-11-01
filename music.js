@@ -22,6 +22,7 @@ var EventHandler = {
 
     sound_font_loaded : function() {
         console.log("Loaded SoundFont");
+        MIDI.setVolume(0, 60);
     },
 
     size_canvas : function() {
@@ -98,7 +99,7 @@ var Simulation = {
 
 var Sound = {
     init : function() {
-        this.delay = 1;
+        this.delay = 2;
         this.translator = {
             1 : 'E',
             2 : 'F#',
@@ -129,9 +130,8 @@ var Sound = {
     },
 
     play_note : function(note) {
-        /*MIDI.setVolume(20, 120);*/
-        MIDI.noteOn(0, this.midi_note(note), 127, 0);
-        MIDI.noteOff(0, this.midi_note(note), this.delay);
+        MIDI.noteOn(0, this.midi_note(note) + 8, 127, 0);
+        MIDI.noteOff(0, this.midi_note(note) + 8, this.delay);
     },
 
     note_name : function(note) {
