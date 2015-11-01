@@ -17,7 +17,11 @@ var EventHandler = {
         if (Simulation.playing)
             Simulation.place_sphere(e);
         else
-            Simulation.start();
+            Simulation.start(e);
+    },
+
+    sound_font_loaded : function() {
+        console.log("Loaded SoundFont");
     },
 
     size_canvas : function() {
@@ -41,19 +45,16 @@ var Simulation = {
         // Set appearance features
         Elements.context.lineWidth = 5;
         this.radius = 50;
+        Elements.context.textBaseline = "middle";
+        Elements.context.font = "20px bold serif";
 
         // Clear screen and get ready
         this.stop();
     },
 
-    start : function() {
-        var movement = new MovementVector(
-                Math.random() * this.width,
-                Math.random() * this.height,
-                0, 0);
-        movement.random_velocity();
-        this.spheres.push(new Sphere(movement, this.radius));
-
+    start : function(e) {
+        this.place_sphere(e);
+        this.spheres[0].pitch = 8;
         this.playing = true;
         this.animation = window.requestAnimationFrame(Simulation.main_loop);
     },
@@ -95,22 +96,72 @@ var Simulation = {
     }
 };
 
+var Sound = {
+    init : function() {
+        this.delay = 1;
+        this.translator = {
+            1 : 'E',
+            2 : 'F#',
+            3 : 'G',
+            4 : 'A',
+            5 : 'B',
+            6 : 'C',
+            7 : 'D',
+            8 : 'E'
+        };
+
+        this.note_pitches = {
+            1 : 52,
+            2 : 54,
+            3 : 55,
+            4 : 57,
+            5 : 59,
+            6 : 60,
+            7 : 62,
+            8 : 64
+        }
+
+        MIDI.loadPlugin({
+            soundfontUrl : "soundfonts/",
+            instrument : "acoustic_grand_piano",
+            onsuccess : EventHandler.sound_font_loaded
+        });
+    },
+
+    play_note : function(note) {
+        /*MIDI.setVolume(20, 120);*/
+        MIDI.noteOn(0, this.midi_note(note), 127, 0);
+        MIDI.noteOff(0, this.midi_note(note), this.delay);
+    },
+
+    note_name : function(note) {
+        return this.translator[note];
+    },
+
+    midi_note : function(note) {
+        return this.note_pitches[note];
+    }
+};
+
 function Sphere(movementvector, radius) {
     this.mv = movementvector;
     this.r = radius;
     this.color = "rgba(10, 10, 200, 1)";
+    this.pitch = Math.floor(Math.random() * 7) + 1;
 
     this.check_collision_with_wall = function() {
         if (this.mv.dx() > this.distance_to_right_wall() ||
             this.mv.dx() < this.distance_to_left_wall()) {
             this.mv.x -= this.mv.dx();
             this.mv.angle = Math.PI - this.mv.angle;
+            Sound.play_note(this.pitch);
         }
 
         if (this.mv.dy() > this.distance_to_bottom_wall() ||
             this.mv.dy() < this.distance_to_top_wall()) {
             this.mv.y -= this.mv.dy();
             this.mv.angle = Math.PI * 2 - this.mv.angle;
+            Sound.play_note(this.pitch);
         }
 
         /*if (this.distance_to_top_wall() > -1) {*/
@@ -146,6 +197,9 @@ function Sphere(movementvector, radius) {
             Math.atan((npos.y - nother.y) / (npos.x - nother.x));
         other.mv.next_angle = 2 * intersection_plane_angle - other.mv.angle;
         /*other.mv.mag = other.mv.dot(this.mv);*/
+
+        Sound.play_note(this.pitch);
+        Sound.play_note(other.pitch);
     };
 
     this.distance_to_right_wall = function() {
@@ -170,9 +224,19 @@ function Sphere(movementvector, radius) {
 
     this.draw = function() {
         Elements.context.beginPath();
-        Elements.context.arc(this.mv.x, this.mv.y, this.r, 0, 2 * Math.PI, true);
+        Elements.context.arc(
+                this.mv.x,
+                this.mv.y,
+                this.r,
+                0,
+                2 * Math.PI,
+                true);
         Elements.context.strokeStyle = this.color;
         Elements.context.stroke();
+        Elements.context.fillText(
+                Sound.note_name(this.pitch),
+                this.mv.x - 5,
+                this.mv.y + 5);
         Elements.context.closePath();
     };
 }

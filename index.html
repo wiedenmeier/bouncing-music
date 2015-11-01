@@ -3,8 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <title>bouncing music</title>
-    <script src="music.js"></script>
     <link rel="stylesheet" href="main.css" type="text/css">
+    <script src="music.js"></script>
+    <script src="midi/MIDI.js"></script>
+    <script src="midi/audioDetect.js"></script>
+    <script src="midi/gm.js"></script>
+    <script src="midi/loader.js"></script>
+    <script src="midi/player.js"></script>
+    <script src="midi/plugin.audiotag.js"></script>
+    <script src="midi/plugin.webaudio.js"></script>
+    <script src="midi/plugin.webmidi.js"></script>
+    <script src="midi/synesthesia.js"></script>
+    <script src="midi/Base64.js"></script>
+    <script src="midi/Base64binary.js"></script>
+    <script src="midi/WebAudioAPI.js"></script>
+    <script src="midi/WebMIDIAPI.js"></script>
+    <script src="midi/dom_request_xhr.js"></script>
+    <script src="midi/dom_request_script.js"></script>
+    <script src="midi/midifile.js"></script>
+    <script src="midi/replayer.js"></script>
+    <script src="midi/stream.js"></script>
+    <script src="midi/tuna.js"></script>
+    <script src="midi/colorspace.js"></script>
+    <script src="main.js"></script>
 </head>
 <body>
     <header>
@@ -13,9 +34,12 @@
     </header>
     <canvas id="main_canvas"></canvas>
     <script type="text/javascript">
-        Elements.init();
-        EventHandler.init();
-        Simulation.init();
+        window.onload = function() {
+            Sound.init();
+            Elements.init();
+            EventHandler.init();
+            Simulation.init();
+        };
     </script>
 </body>
 </html>
