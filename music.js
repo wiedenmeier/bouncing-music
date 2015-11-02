@@ -55,7 +55,7 @@ var Simulation = {
 
     start : function(e) {
         this.place_sphere(e);
-        this.spheres[0].pitch = 8;
+        this.spheres[0].pitch = 1;
         this.playing = true;
         this.animation = window.requestAnimationFrame(Simulation.main_loop);
     },
